@@ -1,4 +1,7 @@
-const { Router } = require("express");
+const { Router } = require('express');
+const { check } = require('express-validator')
+const { validateFields } = require('../middlewares/validateFields');
+
 const {
   getUsers,
   createUser,
@@ -9,7 +12,11 @@ const {
 
 const router = Router();
 
-router.post("/", createUser);
+router.post("/", [
+  check('email', 'The email is not valid').isEmail(),
+  check('name', 'The name is required').not().isEmpty(),
+  validateFields
+], createUser);
 
 router.get("/", getUsers);
 
