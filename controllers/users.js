@@ -12,16 +12,6 @@ const createUser = async(req = request, res = response) => {
             password,
             role
         })
-
-        const emailExists = User.findOne({
-            email
-        })
-
-        if (emailExists) {
-            return res.status(400).json({
-                msg: 'El correo ya existe'
-            })
-        }
         
         const salt = bcryptjs.genSaltSync()
         user.password = bcryptjs.hashSync(password, salt)
@@ -36,24 +26,46 @@ const createUser = async(req = request, res = response) => {
     }
 }
 
-const getUsers = (req = request, res = response) => {
+const getUsers = async(req = request, res = response) => {
 
-    const { name } = req.query
+    const { limit = 5, from = 0  } = req.query
+
+    const query = {
+        estado: true
+    }
+
+    const requests = []
+
+    const usersRequest = User.find(query)
+        .skip(Number(from))
+        .limit(Number(limit))
+    requests.push(usersRequest)
+
+    const totalRequest = User.countDocuments(query)
+    requests.push(totalRequest)
+
+    const [ users, total] = await Promise.all(requests)
 
     res.json({
-        msg: 'getUsers API - controller',
-        name
+        users,
+        total
     })
 }
 
-const updateUser = (req = request, res = response) => {
+const updateUser = async (req = request, res = response) => {
 
     const { id } = req.params
+    const { _id, password, google, ...rest } = req.body
 
-    res.json({
-        msg: 'updateUser API - controller',
-        id
-    })
+    
+    if (password) {
+        const salt = bcryptjs.genSaltSync()
+        rest.password = bcryptjs.hashSync(password, salt)
+    }
+    
+    const user = await User.findByIdAndUpdate(id, rest)
+
+    res.json(user)
 }
 
 const patchUser = (req = request, res = response) => {
@@ -62,10 +74,16 @@ const patchUser = (req = request, res = response) => {
     })
 }
 
-const deleteUser = (req = request, res = response) => {
-    res.json({
-        msg: 'deleteUser API - controller'
+const deleteUser = async(req = request, res = response) => {
+    const { id } = req.params
+
+    // const deletedUser = await User.findOneAndDelete(id)
+
+    const deletedUser = await User.findByIdAndUpdate(id, {
+        estado: false
     })
+
+    res.json(deletedUser)
 }
 
 
